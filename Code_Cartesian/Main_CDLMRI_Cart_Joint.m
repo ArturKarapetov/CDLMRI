@@ -5,7 +5,8 @@
 %This software is to perform Coupled Dictionary Learning based Multi-contrast MRI Reconstruction that jointly reconstructs two contrasts, 
 % e.g. T1-weighted and T2-weighted contrasts from their under-sampled k-space measurements.
 %Note that all input parameters need to be set prior to simulation. We provide some example settings for the input parameters below. However, the user is
-%advised to choose optimal values for the parameters depending on the specific data or task at hand.
+%advised to:
+%% choose optimal values for the parameters depending on the specific data or task at hand.
 % 
 % 
 % Inputs -
@@ -63,8 +64,8 @@ addpath(genpath('./utils'))
 clear;
 
 % load and adjust true images
-NUMROWS = 256;
-NUMCOLS = 256;
+NUMROWS = 240;
+NUMCOLS = 176;
 
 % Construct testing dataset.
 XpathCell = glob('./TestImages_MRI', '*_T1.png' );
@@ -116,7 +117,7 @@ Psi_y = outputCDL.Psi_y;
 Dict = [Psi_cx, Psi_x, zeros(n,K) ; ...
 			Psi_cy, zeros(n,K), Psi_y]; 
 								
-% % generate a new Cartesian random sampling masks along x direction
+%% generate a new Cartesian random sampling masks along x direction
 % addpath('./CartesianMasks/VariousMasks/undersampling');
 % center_block = [0 0]; % size of full sampling area in the center
 % cart_random = [0, 32]; % [0 8]; % # of fixed line in the center and # of random lines	
@@ -129,9 +130,9 @@ Dict = [Psi_cx, Psi_x, zeros(n,K) ; ...
 % QA = MRI_sample_backward(ones(size(cartesianX_random,2),1), cartesianX_random, s_image);
 % QB = ones(size(QA)); % Full sampling for side information
 % figure; imshow(QA)
-% % imwrite(255.*QA,colormap(gray(256)),sprintf('Q1.png', []));
+% imwrite(255.*QA,colormap(gray(256)),sprintf('Q1.png', []));
 
-% load masks
+%% load masks
 QA = imread('./CartesianMasks/Cart64/Q1.png');
 QB = imread('./CartesianMasks/Cart64/Q2.png');
 QA = (QA>0.1);
