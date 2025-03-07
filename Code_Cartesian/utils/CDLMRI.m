@@ -123,6 +123,9 @@ param1.InputPSNRA=InputPSNRA;
 
 indexA=find(Q1A==1); %Index the sampled locations in sampling mask
 
+fprintf('Size of I5A: %s\n', mat2str(size(I5A)));
+fprintf('Size of Q1A: %s\n', mat2str(size(Q1A)));
+
 I2A=(double(I5A)).*(Q1A);  %Apply mask in DFT domain
 I11A=ifft2(I2A);          % Inverse FFT - gives zero-filled result
 

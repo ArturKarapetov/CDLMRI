@@ -56,25 +56,35 @@
 %
 % =========================================================================
 
+cd C:\Users\Arthur\Documents\GitHub\CDLMRI\Code_Cartesian
 addpath('./Dicts');
 addpath(genpath('./utils'))
 
 
-clear;
+clc;
 
 % load and adjust true images
-NUMROWS = 256;
-NUMCOLS = 256;
+NUMROWS = 176;
+NUMCOLS = 240;
 
-% Construct testing dataset.
-XpathCell = glob('./TestImages_MRI', '*_T1.png' );
+%% Construct testing dataset.
+
+%XpathCell = glob('./TestImages_MRI', '*_T1.png' );
+%Xcell = load_images( XpathCell );
+
+XpathCell = glob('./TestImages_MRI', '*_1.png' );
 Xcell = load_images( XpathCell );
+
 for i =1 : length(Xcell)
 	Xcell{i} = imresize(Xcell{i}, [NUMROWS, NUMCOLS], 'bicubic');
 end
 
-YpathCell = glob('./TestImages_MRI', '*_T2.png' );
+% YpathCell = glob('./TestImages_MRI', '*_T2.png' );
+% Ycell = load_images(YpathCell );
+
+YpathCell = glob('./TestImages_MRI', '*_2.png' );
 Ycell = load_images(YpathCell );
+
 for i =1 : length(Ycell)
 	Ycell{i} = imresize(Ycell{i}, [NUMROWS, NUMCOLS], 'bicubic');
 end
@@ -131,11 +141,21 @@ Dict = [Psi_cx, Psi_x, zeros(n,K) ; ...
 % figure; imshow(QA)
 % % imwrite(255.*QA,colormap(gray(256)),sprintf('Q1.png', []));
 
-% load masks
-QA = imread('./CartesianMasks/Cart64/Q1.png');
-QB = imread('./CartesianMasks/Cart64/Q2.png');
-QA = (QA>0.1);
-QB = (QB>0.1);
+%% load masks
+% QA = imread('./CartesianMasks/Cart64/Q1.png');
+% QB = imread('./CartesianMasks/Cart64/Q2.png');
+% QA = (QA>0.1);
+% QB = (QB>0.1);
+% 
+% QA = ifftshift( QA );
+% QB = ifftshift( QB );
+% Q.Q1A = ( QA );
+% Q.Q1B = ( QB );
+% indexQA=find(QA==1); %Index the sampled locations in sampling mask
+% fold = round( (NUMROWS * NUMCOLS) / length(indexQA) );
+
+QA = VDPDMask1;
+QB = VDPDMask2;
 
 QA = ifftshift( QA );
 QB = ifftshift( QB );
@@ -144,14 +164,13 @@ Q.Q1B = ( QB );
 indexQA=find(QA==1); %Index the sampled locations in sampling mask
 fold = round( (NUMROWS * NUMCOLS) / length(indexQA) );
 
-
-% set noise power
+%% set noise power
 sigmai.sigmaiA = 0 ; % Noise level for input image.
 sigmai.sigmaiB = 0 ;
 sigma.sigmaA = 0 ; % Noise level for k-space sampling.
 sigma.sigmaB = 0 ;
 
-% set parameters
+%% set parameters
 numIter = 60; % number of outer iterations.
 ErrTh_start = 0.1; % error threshold (RMSE) in the beginning, % RMSE = 10^(-PSNR_goal/20);
 ErrTh_end = 0.004;  % error threshold at the end	
@@ -189,7 +208,7 @@ DLMRIparams.Psi_y0 = outputCDL.Psi_y(:,1:K);
 % DLMRIparams.r = 1; %1
 
 
-% file name
+%% file name
 SIZE = ['_D',num2str( DLMRIparams.n ),'x',num2str( DLMRIparams.K )];
 MaxIter = ['_Iter', num2str( DLMRIparams.num )];
 current_date = date;
@@ -204,6 +223,8 @@ FILENAME = ['CDLMRI_T1T2', SIZE, Fold, S, MaxIter, W, DATE];
 PSNR_all = [];
 S_train_all = [];
 S_test_all = [];
+
+%%
 for i =1 : length(Xcell)
 
 	fprintf('Processing image No. %d ... \n', i);
