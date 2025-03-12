@@ -65,13 +65,10 @@ addpath(genpath('./utils'))
 clc;
 
 % load and adjust true images
-<<<<<<< HEAD
+
 NUMROWS = 176;
 NUMCOLS = 240;
-=======
-NUMROWS = 240;
-NUMCOLS = 176;
->>>>>>> 5f45544b3b6235b67f6578daee0fefa88d94b627
+
 
 %% Construct testing dataset.
 
@@ -148,7 +145,6 @@ Dict = [Psi_cx, Psi_x, zeros(n,K) ; ...
 % imwrite(255.*QA,colormap(gray(256)),sprintf('Q1.png', []));
 
 %% load masks
-<<<<<<< HEAD
 % QA = imread('./CartesianMasks/Cart64/Q1.png');
 % QB = imread('./CartesianMasks/Cart64/Q2.png');
 % QA = (QA>0.1);
@@ -163,12 +159,6 @@ Dict = [Psi_cx, Psi_x, zeros(n,K) ; ...
 
 QA = VDPDMask1;
 QB = VDPDMask2;
-=======
-QA = imread('./CartesianMasks/Cart64/Q1.png');
-QB = imread('./CartesianMasks/Cart64/Q2.png');
-QA = (QA>0.1);
-QB = (QB>0.1);
->>>>>>> 5f45544b3b6235b67f6578daee0fefa88d94b627
 
 QA = ifftshift( QA );
 QB = ifftshift( QB );
@@ -248,6 +238,9 @@ for i =1 : length(Xcell)
 	%% The first stage uses maximum overlapping setting (stride=1) to perform CDLMRI
 	% do CDLMRI
 	[Iout1,param1] = CDLMRI(Img, Q, sigmai,sigma,DLMRIparams); 
+
+
+   
 % 	Iout1.A = uint8( 255.*abs(Iout1.A) ) ;
 % 	Iout1.B = uint8( 255.*abs(Iout1.B) ) ;
 	
@@ -291,6 +284,86 @@ for i =1 : length(Xcell)
 	% do CDLMRI
 	[Iout2,param2] = CDLMRI(Img, Q, sigmai,sigma, DLMRIparams2); 
 	
+
+%%%%%%%%%%%%%%%%%%%% ADDED CODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% === Compute Final Reconstruction Metrics (Stage 2) ===
+ref_img_A = abs(Img.I1A);  % Original Target Image (T1)
+recon_img_A2 = abs(Iout2.A);  % Final Reconstructed Target Image (T1)
+
+ref_img_B = abs(Img.I1B);  % Original Guidance Image (T2)
+recon_img_B2 = abs(Iout2.B);  % Final Reconstructed Guidance Image (T2)
+
+figure;
+subplot(1,2,1); imagesc(recon_img_A2'); colormap gray; title('Final Reconstructed Target (I1A)');
+subplot(1,2,2); imagesc(ref_img_A'); colormap gray; title('Reference Target (I1A)');
+
+
+if isnan(HFEN_A2) || isinf(HFEN_A2)
+    error('HFEN computation failed (NaN or Inf detected).');
+end
+
+disp(['Final Iteration PSNR: ', num2str(param2.PSNRA(end))]);
+disp(['Final Iteration RMSE: ', num2str(param2.RMSEA(end))]);
+disp(['Final Iteration HFEN: ', num2str(HFEN(ref_img_A, recon_img_A2))]);
+
+ref_img_A = (ref_img_A - min(ref_img_A(:))) / (max(ref_img_A(:)) - min(ref_img_A(:)));
+recon_img_A2 = (recon_img_A2 - min(recon_img_A2(:))) / (max(recon_img_A2(:)) - min(recon_img_A2(:)));
+
+% Compute Metrics for Target Image (I1A)
+% NRMSE_A2 = norm(ref_img_A(:) - recon_img_A2(:)) / norm(ref_img_A(:));
+SSIM_A2 = ssim(recon_img_A2, ref_img_A);
+HFEN_A2 = HFEN(ref_img_A, recon_img_A2);
+EdgePres_A2 = EdgeEval(ref_img_A, recon_img_A2);
+
+NRMSE_A2 = param2.RMSEA(end); % Use stored RMSE
+
+NRMSE_B2 = param2.RMSEB(end); % Use stored RMSE
+
+% Compute Metrics for Guidance Image (I1B)
+% NRMSE_B2 = norm(ref_img_B(:) - recon_img_B2(:)) / norm(ref_img_B(:));
+SSIM_B2 = ssim(recon_img_B2, ref_img_B);
+HFEN_B2 = HFEN(ref_img_B, recon_img_B2);
+EdgePres_B2 = EdgeEval(ref_img_B, recon_img_B2);
+
+% === Visualization: Final Reconstruction Performance ===
+figure;
+subplot(2, 2, 1);
+imagesc(ref_img_A), colormap gray, axis image; %colorbar;
+title('Target Image (INV-1)');
+
+subplot(2, 2, 2);
+imagesc(recon_img_A2), colormap gray, axis image; %colorbar;
+title('Stage 2 Reconstructed INV-1');
+
+subplot(2, 2, 3);
+imagesc(ref_img_B), colormap gray, axis image; %colorbar;
+title('Guidance Image (INV-2)');
+
+subplot(2, 2, 4);
+imagesc(recon_img_B2), colormap gray, axis image; %colorbar;
+title('Stage 2 Reconstructed INV-2');
+
+% === Display Metrics in Console ===
+fprintf('\nFinal Reconstruction Metrics:\n');
+fprintf('Target Image (I1A) - NRMSE: %.4f | SSIM: %.4f | HFEN: %.4f | Edge Preservation: %.4f\n', ...
+    NRMSE_A2, SSIM_A2, HFEN_A2, EdgePres_A2);
+fprintf('Guidance Image (I1B) - NRMSE: %.4f | SSIM: %.4f | HFEN: %.4f | Edge Preservation: %.4f\n', ...
+    NRMSE_B2, SSIM_B2, HFEN_B2, EdgePres_B2);
+
+% === Store Final Metrics in Result_cell ===
+Result_cell{i}.NRMSE_A2 = NRMSE_A2;
+Result_cell{i}.SSIM_A2 = SSIM_A2;
+Result_cell{i}.HFEN_A2 = HFEN_A2;
+Result_cell{i}.EdgePres_A2 = EdgePres_A2;
+
+Result_cell{i}.NRMSE_B2 = NRMSE_B2;
+Result_cell{i}.SSIM_B2 = SSIM_B2;
+Result_cell{i}.HFEN_B2 = HFEN_B2;
+Result_cell{i}.EdgePres_B2 = EdgePres_B2;
+
+
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	Result_cell{i}.Iout2 = Iout2;
 	Result_cell{i}.param2 = param2;
 	
@@ -322,5 +395,48 @@ for i = 1 : numel(Result_cell)
 end
 
 
+% Define total iterations
+numIter1 = length(param1.PSNRA); % Iterations in Stage 1
+numIter2 = length(param2.PSNRA); % Iterations in Stage 2
+total_iterations = numIter1 + numIter2;
 
+% Normalize PSNR values (relative to max PSNR in Stage 1 and 2)
+max_PSNR_A = max([param1.PSNRA(:); param2.PSNRA(:)]);
+max_PSNR_B = max([param1.PSNRB(:); param2.PSNRB(:)]);
 
+normalized_PSNR_A_stage1 = param1.PSNRA / max_PSNR_A;
+normalized_PSNR_B_stage1 = param1.PSNRB / max_PSNR_B;
+normalized_PSNR_A_stage2 = param2.PSNRA / max_PSNR_A;
+normalized_PSNR_B_stage2 = param2.PSNRB / max_PSNR_B;
+
+% Create Figure
+figure;
+sgtitle('Reconstruction Performance Across Iterations')
+
+% PSNR Progression Plot
+subplot(1,2,1);
+hold on;
+plot(1:numIter1, normalized_PSNR_A_stage1, 'b', 'LineWidth', 2); % Target PSNR Stage 1
+plot(1:numIter1, normalized_PSNR_B_stage1, 'r', 'LineWidth', 2); % Guidance PSNR Stage 1
+plot(numIter1+1:numIter1+numIter2, normalized_PSNR_A_stage2, 'b--', 'LineWidth', 2); % Target PSNR Stage 2
+plot(numIter1+1:numIter1+numIter2, normalized_PSNR_B_stage2, 'r--', 'LineWidth', 2); % Guidance PSNR Stage 2
+hold off;
+
+xlabel('Iteration');
+ylabel('Normalized PSNR (0-1)');
+title('PSNR Progression Across Stages');
+legend({'Target PSNR (Stage 1)', 'Guidance PSNR (Stage 1)', 'Target PSNR (Stage 2)', 'Guidance PSNR (Stage 2)'}, 'Location', 'southeast');
+
+% RMSE Progression Plot
+subplot(1,2,2);
+hold on;
+plot(1:numIter1, param1.RMSEA, 'b', 'LineWidth', 2); % Target RMSE Stage 1
+plot(1:numIter1, param1.RMSEB, 'r', 'LineWidth', 2); % Guidance RMSE Stage 1
+plot(numIter1+1:numIter1+numIter2, param2.RMSEA, 'b--', 'LineWidth', 2); % Target RMSE Stage 2
+plot(numIter1+1:numIter1+numIter2, param2.RMSEB, 'r--', 'LineWidth', 2); % Guidance RMSE Stage 2
+hold off;
+
+xlabel('Iteration');
+ylabel('RMSE');
+title('RMSE Progression Across Stages');
+legend({'Target RMSE (Stage 1)', 'Guidance RMSE (Stage 1)', 'Target RMSE (Stage 2)', 'Guidance RMSE (Stage 2)'}, 'Location', 'northeast');
